@@ -136,3 +136,6 @@ The system has error handling at multiple layers but relies on manual debugging.
 
 ### Configuration Changes
 Changes to `config.py` require server restart. Key settings include chunk sizes, search limits, and AI model parameters.
+
+### Additional Memories
+- Always use `uv` to run the server. Never use `pip` directly.
