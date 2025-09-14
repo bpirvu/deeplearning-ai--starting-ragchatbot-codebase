@@ -139,3 +139,5 @@ Changes to `config.py` require server restart. Key settings include chunk sizes,
 
 ### Additional Memories
 - Always use `uv` to run the server. Never use `pip` directly.
+- make sure to use `uv` to manage all dependencies
+- use `uv` to run Python files
