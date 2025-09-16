@@ -1,5 +1,6 @@
 from typing import List, Tuple, Optional, Dict
 import os
+import logging
 from document_processor import DocumentProcessor
 from vector_store import VectorStore
 from ai_generator import AIGenerator
@@ -7,24 +8,50 @@ from session_manager import SessionManager
 from search_tools import ToolManager, CourseSearchTool, CourseOutlineTool
 from models import Course, Lesson, CourseChunk
 
+# Setup logging
+logger = logging.getLogger(__name__)
+
 class RAGSystem:
-    """Main orchestrator for the Retrieval-Augmented Generation system"""
-    
+    """Main orchestrator for the Retrieval-Augmented Generation system with enhanced error handling"""
+
     def __init__(self, config):
+        logger.info("🚀 Initializing RAG System...")
         self.config = config
-        
-        # Initialize core components
-        self.document_processor = DocumentProcessor(config.CHUNK_SIZE, config.CHUNK_OVERLAP)
-        self.vector_store = VectorStore(config.CHROMA_PATH, config.EMBEDDING_MODEL, config.MAX_RESULTS)
-        self.ai_generator = AIGenerator(config.ANTHROPIC_API_KEY, config.ANTHROPIC_MODEL)
-        self.session_manager = SessionManager(config.MAX_HISTORY)
-        
-        # Initialize search tools
-        self.tool_manager = ToolManager()
-        self.search_tool = CourseSearchTool(self.vector_store)
-        self.outline_tool = CourseOutlineTool(self.vector_store)
-        self.tool_manager.register_tool(self.search_tool)
-        self.tool_manager.register_tool(self.outline_tool)
+
+        # Validate configuration before proceeding
+        logger.info("✅ Validating configuration...")
+        if not config.validate_and_log():
+            raise ValueError("Configuration validation failed. Cannot initialize RAG system.")
+
+        try:
+            # Initialize core components with detailed logging
+            logger.info("📝 Initializing document processor...")
+            self.document_processor = DocumentProcessor(config.CHUNK_SIZE, config.CHUNK_OVERLAP)
+
+            logger.info("🗃️  Initializing vector store...")
+            self.vector_store = VectorStore(config.CHROMA_PATH, config.EMBEDDING_MODEL, config.MAX_RESULTS)
+
+            logger.info("🤖 Initializing AI generator...")
+            self.ai_generator = AIGenerator(config.ANTHROPIC_API_KEY, config.ANTHROPIC_MODEL)
+
+            logger.info("💬 Initializing session manager...")
+            self.session_manager = SessionManager(config.MAX_HISTORY)
+
+            # Initialize search tools
+            logger.info("🔧 Setting up search tools...")
+            self.tool_manager = ToolManager()
+            self.search_tool = CourseSearchTool(self.vector_store)
+            self.outline_tool = CourseOutlineTool(self.vector_store)
+            self.tool_manager.register_tool(self.search_tool)
+            self.tool_manager.register_tool(self.outline_tool)
+
+            logger.info("✅ RAG System initialization complete!")
+            logger.info(f"📊 System ready with {len(self.tool_manager.tools)} tools available")
+
+        except Exception as e:
+            logger.error(f"❌ RAG System initialization failed: {e}")
+            logger.error(f"   Configuration: {config.get_summary()}")
+            raise RuntimeError(f"Failed to initialize RAG system: {e}") from e
     
     def add_course_document(self, file_path: str) -> Tuple[Course, int]:
         """
