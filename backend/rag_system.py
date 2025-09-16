@@ -129,9 +129,6 @@ class RAGSystem:
         # Get sources from the search tool
         sources = self.tool_manager.get_last_sources()
 
-        # Reset sources after retrieving them
-        self.tool_manager.reset_sources()
-        
         # Update conversation history
         if session_id:
             self.session_manager.add_exchange(session_id, query, response)

@@ -44,6 +44,7 @@ class QueryResponse(BaseModel):
     """Response model for course queries"""
     answer: str
     sources: List[str]
+    source_links: List[Optional[str]]
     session_id: str
 
 class CourseStats(BaseModel):
@@ -64,10 +65,17 @@ async def query_documents(request: QueryRequest):
         
         # Process query using RAG system
         answer, sources = rag_system.query(request.query, session_id)
-        
+
+        # Get source links from the search tool
+        source_links = rag_system.tool_manager.get_last_source_links()
+
+        # Reset sources after retrieving them for next request
+        rag_system.tool_manager.reset_sources()
+
         return QueryResponse(
             answer=answer,
             sources=sources,
+            source_links=source_links,
             session_id=session_id
         )
     except Exception as e:
