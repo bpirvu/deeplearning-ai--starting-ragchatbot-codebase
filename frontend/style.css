@@ -619,41 +619,36 @@ details[open] .suggested-header::before {
 
 /* New Chat Button */
 .new-chat-button {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    background: var(--primary-color);
-    border: 1px solid var(--primary-color);
-    border-radius: 8px;
-    color: white;
     font-size: 0.875rem;
     font-weight: 600;
+    color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
+    padding: 0.5rem 0;
+    border: none;
+    background: none;
+    list-style: none;
+    outline: none;
+    transition: color 0.2s ease;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    text-align: left;
 }
 
 .new-chat-button:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px var(--focus-ring);
+    color: var(--primary-color);
 }
 
 .new-chat-button:hover {
-    background: var(--primary-hover);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-}
-
-.new-chat-button:active {
-    transform: translateY(0);
+    color: var(--primary-color);
 }
 
 .new-chat-button svg {
+    margin-right: 0.5rem;
+    transition: transform 0.2s ease;
+    font-size: 0.75rem;
     flex-shrink: 0;
 }
 
