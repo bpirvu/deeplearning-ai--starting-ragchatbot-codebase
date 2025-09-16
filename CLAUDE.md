@@ -34,7 +34,7 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
 ## Architecture Overview
 
-This is a **Retrieval-Augmented Generation (RAG) system** for querying course materials with AI-powered responses.
+This is a **Retrieval-Augmented Generation (RAG) system** for querying course materials with AI-powered responses. The system supports both content search within courses and course outline retrieval.
 
 ### Core Architecture Pattern
 The system follows a **layered architecture** with tool-augmented AI:
@@ -64,9 +64,12 @@ Frontend (Vanilla JS) ←→ FastAPI ←→ RAG System ←→ AI Generator (Clau
   - Configured for educational content with specific system prompts
 
 #### Search Architecture
-- **CourseSearchTool** (`search_tools.py`): Semantic search tool that Claude can call
+- **CourseSearchTool** (`search_tools.py`): Semantic search tool for course content
   - Provides course name matching and lesson filtering
   - Returns formatted results for AI consumption
+- **CourseOutlineTool** (`search_tools.py`): Course structure retrieval tool
+  - Retrieves complete course outlines with metadata
+  - Returns course title, instructor, course link, and lesson list
 - **VectorStore** (`vector_store.py`): ChromaDB integration for vector storage
   - Handles embedding generation using Sentence Transformers
   - Supports filtered search by course and lesson
@@ -94,8 +97,8 @@ All settings are centralized in `config.py`:
 2. **FastAPI** validates request and calls RAG system
 3. **RAG System** retrieves conversation history and calls AI generator
 4. **AI Generator** sends query to Claude API with available tools
-5. **Claude** decides to use search tool and calls CourseSearchTool
-6. **Search Tool** performs semantic search in ChromaDB
+5. **Claude** decides which tool to use and calls either CourseSearchTool (for content) or CourseOutlineTool (for course structure)
+6. **Search Tool** performs either semantic search in ChromaDB or retrieves course metadata
 7. **Results** flow back through layers with sources tracked
 8. **Frontend** renders response with sources in collapsible sections
 
