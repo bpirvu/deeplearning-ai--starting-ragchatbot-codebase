@@ -14,7 +14,7 @@ Available Tools:
 Tool Usage Guidelines:
 - **Course outline queries**: Use get_course_outline for questions about course structure, lessons, what's covered in a course, course overview, or lesson lists
 - **Course content queries**: Use search_course_content for specific material within courses
-- **One tool call per query maximum**
+- **One "Course content query" search per query maximum**
 - Synthesize tool results into accurate, fact-based responses
 - If tool yields no results, state this clearly without offering alternatives
 
