@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+from types import SimpleNamespace
 import tempfile
 import os
 from typing import List, Dict, Any
@@ -98,9 +98,9 @@ def error_search_results():
 
 
 @pytest.fixture
-def mock_vector_store(sample_search_results, sample_course):
+def mock_vector_store(mocker, sample_search_results, sample_course):
     """Mock VectorStore for testing"""
-    mock_store = Mock()
+    mock_store = mocker.Mock()
     mock_store.search.return_value = sample_search_results
     mock_store.get_lesson_link.return_value = "https://example.com/lesson1"
     mock_store.get_all_courses_metadata.return_value = [
@@ -122,29 +122,34 @@ def mock_vector_store(sample_search_results, sample_course):
 
 
 @pytest.fixture
-def mock_anthropic_client():
+def mock_anthropic_client(mocker):
     """Mock Anthropic client for testing"""
-    mock_client = Mock()
+    mock_client = mocker.Mock()
 
     # Create mock response for direct text response
-    mock_text_response = Mock()
-    mock_text_response.content = [Mock(text="This is a test response from Claude")]
-    mock_text_response.stop_reason = "end_turn"
+    mock_text_response = SimpleNamespace(
+        content=[SimpleNamespace(text="This is a test response from Claude")],
+        stop_reason="end_turn"
+    )
 
     # Create mock response for tool use
-    mock_tool_content = Mock()
-    mock_tool_content.type = "tool_use"
-    mock_tool_content.name = "search_course_content"
-    mock_tool_content.input = {"query": "test query"}
-    mock_tool_content.id = "tool_123"
+    mock_tool_content = SimpleNamespace(
+        type="tool_use",
+        name="search_course_content",
+        input={"query": "test query"},
+        id="tool_123"
+    )
 
-    mock_tool_response = Mock()
-    mock_tool_response.content = [mock_tool_content]
-    mock_tool_response.stop_reason = "tool_use"
+    mock_tool_response = SimpleNamespace(
+        content=[mock_tool_content],
+        stop_reason="tool_use"
+    )
 
     # Create final response after tool use
-    mock_final_response = Mock()
-    mock_final_response.content = [Mock(text="Based on the search results, here is the answer...")]
+    mock_final_response = SimpleNamespace(
+        content=[SimpleNamespace(text="Based on the search results, here is the answer...")],
+        stop_reason="end_turn"
+    )
 
     mock_client.messages.create.side_effect = [mock_tool_response, mock_final_response]
 
@@ -200,9 +205,9 @@ This is the advanced topics lesson. It covers more complex concepts and builds o
 
 
 @pytest.fixture
-def mock_tool_manager():
+def mock_tool_manager(mocker):
     """Mock ToolManager for testing"""
-    mock_manager = Mock()
+    mock_manager = mocker.Mock()
     mock_manager.get_tool_definitions.return_value = [
         {
             "name": "search_course_content",
@@ -224,9 +229,9 @@ def mock_tool_manager():
 
 
 @pytest.fixture
-def mock_session_manager():
+def mock_session_manager(mocker):
     """Mock SessionManager for testing"""
-    mock_manager = Mock()
+    mock_manager = mocker.Mock()
     mock_manager.create_session.return_value = "test_session_123"
     mock_manager.get_conversation_history.return_value = "Previous conversation: User asked about AI"
     mock_manager.add_exchange.return_value = None
@@ -235,42 +240,42 @@ def mock_session_manager():
 
 # Mock ChromaDB for testing
 @pytest.fixture
-def mock_chromadb():
+def mock_chromadb(mocker):
     """Mock ChromaDB client and collections"""
-    with patch('chromadb.PersistentClient') as mock_client_class, \
-         patch('chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction') as mock_embedding_class:
+    mock_client_class = mocker.patch('chromadb.PersistentClient')
+    mock_embedding_class = mocker.patch('chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction')
 
-        mock_client = Mock()
-        mock_collection = Mock()
-        mock_embedding_fn = Mock()
+    mock_client = mocker.Mock()
+    mock_collection = mocker.Mock()
+    mock_embedding_fn = mocker.Mock()
 
-        # Configure embedding function mock
-        mock_embedding_class.return_value = mock_embedding_fn
+    # Configure embedding function mock
+    mock_embedding_class.return_value = mock_embedding_fn
 
-        # Configure collection mock
-        mock_collection.query.return_value = {
-            'documents': [["Test document content", "Another test document"]],
-            'metadatas': [[
-                {"course_title": "Test Course", "lesson_number": 1, "chunk_index": 0},
-                {"course_title": "Test Course", "lesson_number": 2, "chunk_index": 1}
-            ]],
-            'distances': [[0.1, 0.3]]
-        }
-        mock_collection.add.return_value = None
-        mock_collection.get.return_value = {
-            'ids': ['Test Course'],
-            'metadatas': [{
-                'title': 'Test Course',
-                'instructor': 'Test Instructor',
-                'course_link': 'https://example.com/course',
-                'lessons_json': '[]',
-                'lesson_count': 0
-            }]
-        }
+    # Configure collection mock with SimpleNamespace-like responses
+    mock_collection.query.return_value = {
+        'documents': [["Test document content", "Another test document"]],
+        'metadatas': [[
+            {"course_title": "Test Course", "lesson_number": 1, "chunk_index": 0},
+            {"course_title": "Test Course", "lesson_number": 2, "chunk_index": 1}
+        ]],
+        'distances': [[0.1, 0.3]]
+    }
+    mock_collection.add.return_value = None
+    mock_collection.get.return_value = {
+        'ids': ['Test Course'],
+        'metadatas': [{
+            'title': 'Test Course',
+            'instructor': 'Test Instructor',
+            'course_link': 'https://example.com/course',
+            'lessons_json': '[]',
+            'lesson_count': 0
+        }]
+    }
 
-        # Configure client mock
-        mock_client.get_or_create_collection.return_value = mock_collection
-        mock_client.delete_collection.return_value = None
-        mock_client_class.return_value = mock_client
+    # Configure client mock
+    mock_client.get_or_create_collection.return_value = mock_collection
+    mock_client.delete_collection.return_value = None
+    mock_client_class.return_value = mock_client
 
-        yield mock_client, mock_collection
+    yield mock_client, mock_collection

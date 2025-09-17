@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from types import SimpleNamespace
 import sys
 import os
 
@@ -81,13 +81,13 @@ class TestSearchResults:
 class TestVectorStore:
     """Test suite for VectorStore class"""
 
-    @patch('vector_store.chromadb.PersistentClient')
-    @patch('vector_store.chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction')
-    def test_initialization(self, mock_embedding_fn, mock_client_class):
+    def test_initialization(self, mocker):
         """Test VectorStore initialization"""
         # Arrange
-        mock_client = Mock()
-        mock_collection = Mock()
+        mock_client_class = mocker.patch('vector_store.chromadb.PersistentClient')
+        mock_embedding_fn = mocker.patch('vector_store.chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction')
+        mock_client = mocker.Mock()
+        mock_collection = mocker.Mock()
         mock_client.get_or_create_collection.return_value = mock_collection
         mock_client_class.return_value = mock_client
 
@@ -117,14 +117,14 @@ class TestVectorStore:
         assert not results.is_empty()
         assert len(results.documents) == 2
 
-    def test_search_with_course_filter(self, mock_chromadb):
+    def test_search_with_course_filter(self, mock_chromadb, mocker):
         """Test search with course name filter"""
         # Arrange
         mock_client, mock_collection = mock_chromadb
         store = VectorStore("/test/path", "test-model", max_results=5)
 
         # Mock course resolution
-        store.course_catalog = Mock()
+        store.course_catalog = mocker.Mock()
         store.course_catalog.query.return_value = {
             'documents': [["Test Course"]],
             'metadatas': [[{"title": "Test Course"}]]
@@ -157,14 +157,14 @@ class TestVectorStore:
             where={"lesson_number": 1}
         )
 
-    def test_search_with_both_filters(self, mock_chromadb):
+    def test_search_with_both_filters(self, mock_chromadb, mocker):
         """Test search with both course and lesson filters"""
         # Arrange
         mock_client, mock_collection = mock_chromadb
         store = VectorStore("/test/path", "test-model", max_results=5)
 
         # Mock course resolution
-        store.course_catalog = Mock()
+        store.course_catalog = mocker.Mock()
         store.course_catalog.query.return_value = {
             'documents': [["Test Course"]],
             'metadatas': [[{"title": "Test Course"}]]
@@ -208,14 +208,14 @@ class TestVectorStore:
         with pytest.raises(ValueError, match="max_results must be > 0, got 0"):
             VectorStore("/test/path", "test-model", max_results=0)
 
-    def test_search_course_not_found(self, mock_chromadb):
+    def test_search_course_not_found(self, mock_chromadb, mocker):
         """Test search when course name cannot be resolved"""
         # Arrange
         mock_client, mock_collection = mock_chromadb
         store = VectorStore("/test/path", "test-model", max_results=5)
 
         # Mock course resolution to return None
-        store.course_catalog = Mock()
+        store.course_catalog = mocker.Mock()
         store.course_catalog.query.return_value = {
             'documents': [[]],
             'metadatas': [[]]
@@ -242,14 +242,14 @@ class TestVectorStore:
         assert results.error == "Search error: Database connection error"
         assert results.is_empty()
 
-    def test_resolve_course_name_success(self, mock_chromadb):
+    def test_resolve_course_name_success(self, mock_chromadb, mocker):
         """Test successful course name resolution"""
         # Arrange
         mock_client, mock_collection = mock_chromadb
         store = VectorStore("/test/path", "test-model", max_results=5)
 
         # Mock catalog query
-        store.course_catalog = Mock()
+        store.course_catalog = mocker.Mock()
         store.course_catalog.query.return_value = {
             'documents': [["Introduction to Machine Learning"]],
             'metadatas': [[{"title": "Introduction to Machine Learning"}]]
@@ -265,14 +265,14 @@ class TestVectorStore:
             n_results=1
         )
 
-    def test_resolve_course_name_not_found(self, mock_chromadb):
+    def test_resolve_course_name_not_found(self, mock_chromadb, mocker):
         """Test course name resolution when no match found"""
         # Arrange
         mock_client, mock_collection = mock_chromadb
         store = VectorStore("/test/path", "test-model", max_results=5)
 
         # Mock catalog query with empty results
-        store.course_catalog = Mock()
+        store.course_catalog = mocker.Mock()
         store.course_catalog.query.return_value = {
             'documents': [[]],
             'metadatas': [[]]
@@ -405,14 +405,14 @@ class TestVectorStore:
         mock_client.delete_collection.assert_any_call("course_catalog")
         mock_client.delete_collection.assert_any_call("course_content")
 
-    def test_get_existing_course_titles(self, mock_chromadb):
+    def test_get_existing_course_titles(self, mock_chromadb, mocker):
         """Test getting existing course titles"""
         # Arrange
         mock_client, mock_collection = mock_chromadb
         store = VectorStore("/test/path", "test-model", max_results=5)
 
         # Mock catalog get
-        store.course_catalog = Mock()
+        store.course_catalog = mocker.Mock()
         store.course_catalog.get.return_value = {
             'ids': ['Course 1', 'Course 2', 'Course 3']
         }
@@ -423,14 +423,14 @@ class TestVectorStore:
         # Assert
         assert titles == ['Course 1', 'Course 2', 'Course 3']
 
-    def test_get_course_count(self, mock_chromadb):
+    def test_get_course_count(self, mock_chromadb, mocker):
         """Test getting course count"""
         # Arrange
         mock_client, mock_collection = mock_chromadb
         store = VectorStore("/test/path", "test-model", max_results=5)
 
         # Mock catalog get
-        store.course_catalog = Mock()
+        store.course_catalog = mocker.Mock()
         store.course_catalog.get.return_value = {
             'ids': ['Course 1', 'Course 2']
         }
@@ -441,7 +441,7 @@ class TestVectorStore:
         # Assert
         assert count == 2
 
-    def test_get_lesson_link(self, mock_chromadb):
+    def test_get_lesson_link(self, mock_chromadb, mocker):
         """Test getting lesson link"""
         # Arrange
         mock_client, mock_collection = mock_chromadb
@@ -449,7 +449,7 @@ class TestVectorStore:
 
         # Mock catalog get with lessons_json
         lessons_json = '[{"lesson_number": 1, "lesson_title": "Intro", "lesson_link": "https://example.com/lesson1"}]'
-        store.course_catalog = Mock()
+        store.course_catalog = mocker.Mock()
         store.course_catalog.get.return_value = {
             'metadatas': [{'lessons_json': lessons_json}]
         }
@@ -460,14 +460,14 @@ class TestVectorStore:
         # Assert
         assert link == "https://example.com/lesson1"
 
-    def test_get_lesson_link_not_found(self, mock_chromadb):
+    def test_get_lesson_link_not_found(self, mock_chromadb, mocker):
         """Test getting lesson link when lesson not found"""
         # Arrange
         mock_client, mock_collection = mock_chromadb
         store = VectorStore("/test/path", "test-model", max_results=5)
 
         # Mock catalog get with empty results
-        store.course_catalog = Mock()
+        store.course_catalog = mocker.Mock()
         store.course_catalog.get.return_value = {
             'metadatas': []
         }

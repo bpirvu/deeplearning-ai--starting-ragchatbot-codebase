@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file.
 - Refactored `generate_response` method in AIGenerator to support sequential tool calling while maintaining backward compatibility
 - Updated system prompt to include examples and guidance for multi-step reasoning patterns
 - Enhanced conversation context preservation between tool calling rounds
+- Refactored entire test suite to use pytest-mock and SimpleNamespace for improved readability and maintainability
 
 ### Fixed
 - Issue where Claude couldn't make additional tool calls after seeing results from previous tools

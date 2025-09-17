@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from types import SimpleNamespace
 import sys
 import os
 import tempfile
@@ -14,11 +14,13 @@ from config import Config
 class TestRAGSystemIntegration:
     """End-to-end integration tests for the RAG system"""
 
-    @patch('rag_system.VectorStore')
-    @patch('rag_system.AIGenerator')
-    @patch('rag_system.DocumentProcessor')
-    @patch('rag_system.SessionManager')
-    def test_rag_system_initialization(self, mock_session_mgr, mock_doc_processor, mock_ai_gen, mock_vector_store):
+    def test_rag_system_initialization(self, mocker):
+        """Test RAG system initialization with all components"""
+        # Arrange
+        mock_vector_store = mocker.patch('rag_system.VectorStore')
+        mock_ai_gen = mocker.patch('rag_system.AIGenerator')
+        mock_doc_processor = mocker.patch('rag_system.DocumentProcessor')
+        mock_session_mgr = mocker.patch('rag_system.SessionManager')
         """Test RAG system initialization with all components"""
         # Arrange
         config = Config()
@@ -39,11 +41,13 @@ class TestRAGSystemIntegration:
         assert "search_course_content" in rag_system.tool_manager.tools
         assert "get_course_outline" in rag_system.tool_manager.tools
 
-    @patch('rag_system.VectorStore')
-    @patch('rag_system.AIGenerator')
-    @patch('rag_system.DocumentProcessor')
-    @patch('rag_system.SessionManager')
-    def test_query_without_session(self, mock_session_mgr, mock_doc_processor, mock_ai_gen, mock_vector_store):
+    def test_query_without_session(self, mocker):
+        """Test querying without session ID"""
+        # Arrange
+        mock_vector_store = mocker.patch('rag_system.VectorStore')
+        mock_ai_gen = mocker.patch('rag_system.AIGenerator')
+        mock_doc_processor = mocker.patch('rag_system.DocumentProcessor')
+        mock_session_mgr = mocker.patch('rag_system.SessionManager')
         """Test querying without session ID"""
         # Arrange
         config = Config()
@@ -54,7 +58,7 @@ class TestRAGSystemIntegration:
         mock_ai_gen.return_value.generate_response.return_value = "AI response about machine learning"
 
         # Mock tool manager sources
-        rag_system.tool_manager.get_last_sources = Mock(return_value=["Test Course - Lesson 1"])
+        rag_system.tool_manager.get_last_sources = mocker.Mock(return_value=["Test Course - Lesson 1"])
 
         # Act
         response, sources = rag_system.query("What is machine learning?")
@@ -75,11 +79,13 @@ class TestRAGSystemIntegration:
         # Verify session manager was not called for history
         mock_session_mgr.return_value.get_conversation_history.assert_not_called()
 
-    @patch('rag_system.VectorStore')
-    @patch('rag_system.AIGenerator')
-    @patch('rag_system.DocumentProcessor')
-    @patch('rag_system.SessionManager')
-    def test_query_with_session(self, mock_session_mgr, mock_doc_processor, mock_ai_gen, mock_vector_store):
+    def test_query_with_session(self, mocker):
+        """Test querying with session ID and conversation history"""
+        # Arrange
+        mock_vector_store = mocker.patch('rag_system.VectorStore')
+        mock_ai_gen = mocker.patch('rag_system.AIGenerator')
+        mock_doc_processor = mocker.patch('rag_system.DocumentProcessor')
+        mock_session_mgr = mocker.patch('rag_system.SessionManager')
         """Test querying with session ID and conversation history"""
         # Arrange
         config = Config()
@@ -93,7 +99,7 @@ class TestRAGSystemIntegration:
         mock_ai_gen.return_value.generate_response.return_value = "AI response with context"
 
         # Mock tool manager sources
-        rag_system.tool_manager.get_last_sources = Mock(return_value=["Test Course - Lesson 2"])
+        rag_system.tool_manager.get_last_sources = mocker.Mock(return_value=["Test Course - Lesson 2"])
 
         # Act
         response, sources = rag_system.query("Can you elaborate?", session_id="test_session_123")
@@ -114,11 +120,13 @@ class TestRAGSystemIntegration:
         call_args = mock_ai_gen.return_value.generate_response.call_args
         assert call_args[1]['conversation_history'] == "Previous conversation history"
 
-    @patch('rag_system.VectorStore')
-    @patch('rag_system.AIGenerator')
-    @patch('rag_system.DocumentProcessor')
-    @patch('rag_system.SessionManager')
-    def test_query_with_broken_config(self, mock_session_mgr, mock_doc_processor, mock_ai_gen, mock_vector_store):
+    def test_query_with_broken_config(self, mocker):
+        """Test that RAGSystem properly rejects invalid MAX_RESULTS=0 config"""
+        # Arrange
+        mock_vector_store = mocker.patch('rag_system.VectorStore')
+        mock_ai_gen = mocker.patch('rag_system.AIGenerator')
+        mock_doc_processor = mocker.patch('rag_system.DocumentProcessor')
+        mock_session_mgr = mocker.patch('rag_system.SessionManager')
         """Test that RAGSystem properly rejects invalid MAX_RESULTS=0 config"""
         # Arrange
         config = Config()
@@ -128,99 +136,103 @@ class TestRAGSystemIntegration:
         with pytest.raises(ValueError, match="Configuration validation failed. Cannot initialize RAG system."):
             RAGSystem(config)
 
-    @patch('rag_system.os.path.isfile')
-    @patch('rag_system.os.path.exists')
-    @patch('rag_system.os.listdir')
-    def test_add_course_folder_success(self, mock_listdir, mock_exists, mock_isfile, temp_course_document):
+    def test_add_course_folder_success(self, mocker, temp_course_document):
+        """Test adding course folder successfully"""
+        # Arrange
+        mock_listdir = mocker.patch('rag_system.os.listdir')
+        mock_exists = mocker.patch('rag_system.os.path.exists')
+        mock_isfile = mocker.patch('rag_system.os.path.isfile')
         """Test adding course folder successfully"""
         # Arrange
         config = Config()
         config.MAX_RESULTS = 5
 
-        with patch('rag_system.VectorStore') as mock_vector_store, \
-             patch('rag_system.AIGenerator'), \
-             patch('rag_system.DocumentProcessor') as mock_doc_processor, \
-             patch('rag_system.SessionManager'):
+        mock_vector_store = mocker.patch('rag_system.VectorStore')
+        mock_ai_gen = mocker.patch('rag_system.AIGenerator')
+        mock_doc_processor = mocker.patch('rag_system.DocumentProcessor')
+        mock_session_mgr = mocker.patch('rag_system.SessionManager')
 
-            # Mock file system
-            mock_exists.return_value = True
-            mock_listdir.return_value = ['course1.txt']
-            mock_isfile.return_value = True
+        # Mock file system
+        mock_exists.return_value = True
+        mock_listdir.return_value = ['course1.txt']
+        mock_isfile.return_value = True
 
-            # Mock document processor
-            from models import Course, Lesson, CourseChunk
-            sample_course = Course(title="Test Course", instructor="Test Instructor")
-            sample_chunks = [
-                CourseChunk(content="Test content", course_title="Test Course", chunk_index=0)
-            ]
-            mock_doc_processor.return_value.process_course_document.return_value = (sample_course, sample_chunks)
+        # Mock document processor
+        from models import Course, Lesson, CourseChunk
+        sample_course = Course(title="Test Course", instructor="Test Instructor")
+        sample_chunks = [
+            CourseChunk(content="Test content", course_title="Test Course", chunk_index=0)
+        ]
+        mock_doc_processor.return_value.process_course_document.return_value = (sample_course, sample_chunks)
 
-            # Mock vector store
-            mock_vector_store.return_value.get_existing_course_titles.return_value = []
+        # Mock vector store
+        mock_vector_store.return_value.get_existing_course_titles.return_value = []
 
-            rag_system = RAGSystem(config)
+        rag_system = RAGSystem(config)
 
-            # Act
-            courses, chunks = rag_system.add_course_folder("/test/docs")
+        # Act
+        courses, chunks = rag_system.add_course_folder("/test/docs")
 
-            # Assert
-            assert courses == 1
-            assert chunks == 1
-            mock_vector_store.return_value.add_course_metadata.assert_called_once_with(sample_course)
-            mock_vector_store.return_value.add_course_content.assert_called_once_with(sample_chunks)
+        # Assert
+        assert courses == 1
+        assert chunks == 1
+        mock_vector_store.return_value.add_course_metadata.assert_called_once_with(sample_course)
+        mock_vector_store.return_value.add_course_content.assert_called_once_with(sample_chunks)
 
-    def test_add_course_folder_nonexistent(self):
+    def test_add_course_folder_nonexistent(self, mocker):
         """Test adding course folder that doesn't exist"""
         # Arrange
         config = Config()
         config.MAX_RESULTS = 5
 
-        with patch('rag_system.VectorStore'), \
-             patch('rag_system.AIGenerator'), \
-             patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.SessionManager'):
+        mock_vector_store = mocker.patch('rag_system.VectorStore')
+        mock_ai_gen = mocker.patch('rag_system.AIGenerator')
+        mock_doc_processor = mocker.patch('rag_system.DocumentProcessor')
+        mock_session_mgr = mocker.patch('rag_system.SessionManager')
 
-            rag_system = RAGSystem(config)
+        rag_system = RAGSystem(config)
 
-            # Act
-            courses, chunks = rag_system.add_course_folder("/nonexistent/path")
+        # Act
+        courses, chunks = rag_system.add_course_folder("/nonexistent/path")
 
-            # Assert
-            assert courses == 0
-            assert chunks == 0
+        # Assert
+        assert courses == 0
+        assert chunks == 0
 
-    def test_get_course_analytics(self):
+    def test_get_course_analytics(self, mocker):
         """Test getting course analytics"""
         # Arrange
         config = Config()
         config.MAX_RESULTS = 5
 
-        with patch('rag_system.VectorStore') as mock_vector_store, \
-             patch('rag_system.AIGenerator'), \
-             patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.SessionManager'):
+        mock_vector_store = mocker.patch('rag_system.VectorStore')
+        mock_ai_gen = mocker.patch('rag_system.AIGenerator')
+        mock_doc_processor = mocker.patch('rag_system.DocumentProcessor')
+        mock_session_mgr = mocker.patch('rag_system.SessionManager')
 
-            mock_vector_store.return_value.get_course_count.return_value = 3
-            mock_vector_store.return_value.get_existing_course_titles.return_value = ["Course 1", "Course 2", "Course 3"]
+        mock_vector_store.return_value.get_course_count.return_value = 3
+        mock_vector_store.return_value.get_existing_course_titles.return_value = ["Course 1", "Course 2", "Course 3"]
 
-            rag_system = RAGSystem(config)
+        rag_system = RAGSystem(config)
 
-            # Act
-            analytics = rag_system.get_course_analytics()
+        # Act
+        analytics = rag_system.get_course_analytics()
 
-            # Assert
-            assert analytics["total_courses"] == 3
-            assert analytics["course_titles"] == ["Course 1", "Course 2", "Course 3"]
+        # Assert
+        assert analytics["total_courses"] == 3
+        assert analytics["course_titles"] == ["Course 1", "Course 2", "Course 3"]
 
 
 class TestRAGSystemToolIntegration:
     """Test integration between RAG system and its tools"""
 
-    @patch('rag_system.VectorStore')
-    @patch('rag_system.AIGenerator')
-    @patch('rag_system.DocumentProcessor')
-    @patch('rag_system.SessionManager')
-    def test_search_tool_integration(self, mock_session_mgr, mock_doc_processor, mock_ai_gen, mock_vector_store):
+    def test_search_tool_integration(self, mocker):
+        """Test that search tool is properly integrated"""
+        # Arrange
+        mock_vector_store = mocker.patch('rag_system.VectorStore')
+        mock_ai_gen = mocker.patch('rag_system.AIGenerator')
+        mock_doc_processor = mocker.patch('rag_system.DocumentProcessor')
+        mock_session_mgr = mocker.patch('rag_system.SessionManager')
         """Test that search tool is properly integrated"""
         # Arrange
         config = Config()
@@ -246,11 +258,13 @@ class TestRAGSystemToolIntegration:
         assert len(rag_system.search_tool.last_sources) == 1
         assert "Test Course - Lesson 1" in rag_system.search_tool.last_sources[0]
 
-    @patch('rag_system.VectorStore')
-    @patch('rag_system.AIGenerator')
-    @patch('rag_system.DocumentProcessor')
-    @patch('rag_system.SessionManager')
-    def test_outline_tool_integration(self, mock_session_mgr, mock_doc_processor, mock_ai_gen, mock_vector_store):
+    def test_outline_tool_integration(self, mocker):
+        """Test that outline tool is properly integrated"""
+        # Arrange
+        mock_vector_store = mocker.patch('rag_system.VectorStore')
+        mock_ai_gen = mocker.patch('rag_system.AIGenerator')
+        mock_doc_processor = mocker.patch('rag_system.DocumentProcessor')
+        mock_session_mgr = mocker.patch('rag_system.SessionManager')
         """Test that outline tool is properly integrated"""
         # Arrange
         config = Config()
@@ -284,11 +298,13 @@ class TestRAGSystemToolIntegration:
 class TestRAGSystemErrorHandling:
     """Test error handling in RAG system"""
 
-    @patch('rag_system.VectorStore')
-    @patch('rag_system.AIGenerator')
-    @patch('rag_system.DocumentProcessor')
-    @patch('rag_system.SessionManager')
-    def test_ai_generator_error_propagation(self, mock_session_mgr, mock_doc_processor, mock_ai_gen, mock_vector_store):
+    def test_ai_generator_error_propagation(self, mocker):
+        """Test that AI generator errors are properly handled"""
+        # Arrange
+        mock_vector_store = mocker.patch('rag_system.VectorStore')
+        mock_ai_gen = mocker.patch('rag_system.AIGenerator')
+        mock_doc_processor = mocker.patch('rag_system.DocumentProcessor')
+        mock_session_mgr = mocker.patch('rag_system.SessionManager')
         """Test that AI generator errors are properly handled"""
         # Arrange
         config = Config()
@@ -304,11 +320,13 @@ class TestRAGSystemErrorHandling:
 
         assert "API Error: Rate limited" in str(excinfo.value)
 
-    @patch('rag_system.VectorStore')
-    @patch('rag_system.AIGenerator')
-    @patch('rag_system.DocumentProcessor')
-    @patch('rag_system.SessionManager')
-    def test_document_processing_error_handling(self, mock_session_mgr, mock_doc_processor, mock_ai_gen, mock_vector_store):
+    def test_document_processing_error_handling(self, mocker):
+        """Test error handling during document processing"""
+        # Arrange
+        mock_vector_store = mocker.patch('rag_system.VectorStore')
+        mock_ai_gen = mocker.patch('rag_system.AIGenerator')
+        mock_doc_processor = mocker.patch('rag_system.DocumentProcessor')
+        mock_session_mgr = mocker.patch('rag_system.SessionManager')
         """Test error handling during document processing"""
         # Arrange
         config = Config()
@@ -330,79 +348,80 @@ class TestRAGSystemErrorHandling:
 class TestRAGSystemWithRealConfigBug:
     """Tests specifically designed to demonstrate the MAX_RESULTS=0 bug"""
 
-    def test_bug_demonstration_with_real_config(self):
+    def test_bug_demonstration_with_real_config(self, mocker):
         """Demonstrate the bug using actual broken config values"""
         # Arrange - Load the actual broken config
         from config import Config
         broken_config = Config()
         # The actual config has MAX_RESULTS = 0
 
-        with patch('rag_system.VectorStore') as mock_vector_store, \
-             patch('rag_system.AIGenerator') as mock_ai_gen, \
-             patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.SessionManager'):
+        mock_vector_store = mocker.patch('rag_system.VectorStore')
+        mock_ai_gen = mocker.patch('rag_system.AIGenerator')
+        mock_doc_processor = mocker.patch('rag_system.DocumentProcessor')
+        mock_session_mgr = mocker.patch('rag_system.SessionManager')
 
-            # Simulate the vector store behavior with MAX_RESULTS=0
-            mock_vector_store.return_value.search.return_value = Mock()
-            mock_vector_store.return_value.search.return_value.is_empty.return_value = True
-            mock_vector_store.return_value.search.return_value.error = None
+        # Simulate the vector store behavior with MAX_RESULTS=0
+        mock_search_result = mocker.Mock()
+        mock_search_result.is_empty.return_value = True
+        mock_search_result.error = None
+        mock_vector_store.return_value.search.return_value = mock_search_result
 
-            # Simulate AI generator getting no tool results
-            mock_ai_gen.return_value.generate_response.return_value = "I don't have specific information about that."
+        # Simulate AI generator getting no tool results
+        mock_ai_gen.return_value.generate_response.return_value = "I don't have specific information about that."
 
-            rag_system = RAGSystem(broken_config)
-            rag_system.tool_manager.get_last_sources = Mock(return_value=[])
+        rag_system = RAGSystem(broken_config)
+        rag_system.tool_manager.get_last_sources = mocker.Mock(return_value=[])
 
-            # Act
-            response, sources = rag_system.query("What is machine learning?")
+        # Act
+        response, sources = rag_system.query("What is machine learning?")
 
-            # Assert - this demonstrates the bug
-            assert "I don't have specific information" in response
-            assert sources == []
+        # Assert - this demonstrates the bug
+        assert "I don't have specific information" in response
+        assert sources == []
 
-            # Verify the vector store was initialized with the broken value
-            mock_vector_store.assert_called_with(
-                broken_config.CHROMA_PATH,
-                broken_config.EMBEDDING_MODEL,
-                broken_config.MAX_RESULTS  # This should be 0
-            )
+        # Verify the vector store was initialized with the broken value
+        mock_vector_store.assert_called_with(
+            broken_config.CHROMA_PATH,
+            broken_config.EMBEDDING_MODEL,
+            broken_config.MAX_RESULTS  # This should be 0
+        )
 
-    def test_bug_fix_verification_with_corrected_config(self):
+    def test_bug_fix_verification_with_corrected_config(self, mocker):
         """Verify that fixing the config resolves the issue"""
         # Arrange - Create fixed config
         fixed_config = Config()
         fixed_config.MAX_RESULTS = 5  # FIXED!
 
-        with patch('rag_system.VectorStore') as mock_vector_store, \
-             patch('rag_system.AIGenerator') as mock_ai_gen, \
-             patch('rag_system.DocumentProcessor'), \
-             patch('rag_system.SessionManager'):
+        mock_vector_store = mocker.patch('rag_system.VectorStore')
+        mock_ai_gen = mocker.patch('rag_system.AIGenerator')
+        mock_doc_processor = mocker.patch('rag_system.DocumentProcessor')
+        mock_session_mgr = mocker.patch('rag_system.SessionManager')
 
-            # Simulate the vector store working correctly with MAX_RESULTS > 0
-            from vector_store import SearchResults
-            mock_search_results = SearchResults(
-                documents=["Machine learning is a subset of AI..."],
-                metadata=[{"course_title": "AI Course", "lesson_number": 1}],
-                distances=[0.1]
-            )
-            mock_vector_store.return_value.search.return_value = mock_search_results
+        # Simulate the vector store working correctly with MAX_RESULTS > 0
+        from vector_store import SearchResults
+        mock_search_results = SearchResults(
+            documents=["Machine learning is a subset of AI..."],
+            metadata=[{"course_title": "AI Course", "lesson_number": 1}],
+            distances=[0.1]
+        )
+        mock_vector_store.return_value.search.return_value = mock_search_results
 
-            # Simulate AI generator getting good tool results
-            mock_ai_gen.return_value.generate_response.return_value = "Machine learning is a subset of artificial intelligence that focuses on algorithms that can learn from data."
+        # Simulate AI generator getting good tool results
+        mock_ai_gen.return_value.generate_response.return_value = "Machine learning is a subset of artificial intelligence that focuses on algorithms that can learn from data."
 
-            rag_system = RAGSystem(fixed_config)
-            rag_system.tool_manager.get_last_sources = Mock(return_value=["AI Course - Lesson 1"])
+        rag_system = RAGSystem(fixed_config)
+        rag_system.tool_manager.get_last_sources = mocker.Mock(return_value=["AI Course - Lesson 1"])
 
-            # Act
-            response, sources = rag_system.query("What is machine learning?")
+        # Act
+        response, sources = rag_system.query("What is machine learning?")
 
-            # Assert - this demonstrates the fix
-            assert "Machine learning is a subset of artificial intelligence" in response
-            assert sources == ["AI Course - Lesson 1"]
+        # Assert - this demonstrates the fix
+        assert "Machine learning is a subset of artificial intelligence" in response
+        assert sources == ["AI Course - Lesson 1"]
 
-            # Verify the vector store was initialized with the fixed value
-            mock_vector_store.assert_called_with(
-                fixed_config.CHROMA_PATH,
-                fixed_config.EMBEDDING_MODEL,
-                5  # This should be 5, not 0
-            )
+        # Verify the vector store was initialized with the fixed value
+        mock_vector_store.assert_called_with(
+            fixed_config.CHROMA_PATH,
+            fixed_config.EMBEDDING_MODEL,
+            5  # This should be 5, not 0
+        )
