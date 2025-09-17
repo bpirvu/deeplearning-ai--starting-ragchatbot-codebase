@@ -200,20 +200,13 @@ class TestVectorStore:
         )
 
     def test_search_with_zero_max_results(self, mock_chromadb):
-        """Test search with MAX_RESULTS=0 (the bug!)"""
+        """Test search with MAX_RESULTS=0 (should fail validation)"""
         # Arrange
         mock_client, mock_collection = mock_chromadb
-        store = VectorStore("/test/path", "test-model", max_results=0)  # This is the bug!
 
-        # Act
-        results = store.search("test query")
-
-        # Assert
-        mock_collection.query.assert_called_once_with(
-            query_texts=["test query"],
-            n_results=0,  # This will return no results!
-            where=None
-        )
+        # Act & Assert - VectorStore should prevent max_results=0
+        with pytest.raises(ValueError, match="max_results must be > 0, got 0"):
+            VectorStore("/test/path", "test-model", max_results=0)
 
     def test_search_course_not_found(self, mock_chromadb):
         """Test search when course name cannot be resolved"""
@@ -487,31 +480,16 @@ class TestVectorStore:
 
 
 class TestVectorStoreBugReproduction:
-    """Specific tests to reproduce and verify the MAX_RESULTS=0 bug"""
+    """Specific tests to verify the MAX_RESULTS=0 bug has been fixed"""
 
     def test_bug_reproduction_zero_max_results(self, mock_chromadb):
-        """Test that reproduces the exact bug: MAX_RESULTS=0"""
-        # Arrange - simulate the broken config
+        """Test that VectorStore properly validates against MAX_RESULTS=0 bug"""
+        # Arrange - simulate the broken config that would have caused the bug
         mock_client, mock_collection = mock_chromadb
-        store = VectorStore("/test/path", "test-model", max_results=0)  # THE BUG!
 
-        # Mock ChromaDB to return empty results when n_results=0
-        mock_collection.query.return_value = {
-            'documents': [[]],  # Empty because n_results=0
-            'metadatas': [[]],
-            'distances': [[]]
-        }
-
-        # Act
-        results = store.search("machine learning basics")
-
-        # Assert - this should demonstrate the bug
-        mock_collection.query.assert_called_once_with(
-            query_texts=["machine learning basics"],
-            n_results=0,  # This is the problem!
-            where=None
-        )
-        assert results.is_empty()  # No results returned due to n_results=0
+        # Act & Assert - VectorStore should now prevent the bug by validation
+        with pytest.raises(ValueError, match="max_results must be > 0, got 0"):
+            VectorStore("/test/path", "test-model", max_results=0)  # Should fail validation!
 
     def test_bug_fix_verification(self, mock_chromadb):
         """Test that verifies the bug is fixed with proper MAX_RESULTS"""

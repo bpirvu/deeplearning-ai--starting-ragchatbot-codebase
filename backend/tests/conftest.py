@@ -237,9 +237,15 @@ def mock_session_manager():
 @pytest.fixture
 def mock_chromadb():
     """Mock ChromaDB client and collections"""
-    with patch('chromadb.PersistentClient') as mock_client_class:
+    with patch('chromadb.PersistentClient') as mock_client_class, \
+         patch('chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction') as mock_embedding_class:
+
         mock_client = Mock()
         mock_collection = Mock()
+        mock_embedding_fn = Mock()
+
+        # Configure embedding function mock
+        mock_embedding_class.return_value = mock_embedding_fn
 
         # Configure collection mock
         mock_collection.query.return_value = {

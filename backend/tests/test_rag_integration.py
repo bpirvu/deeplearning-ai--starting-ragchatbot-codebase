@@ -119,31 +119,19 @@ class TestRAGSystemIntegration:
     @patch('rag_system.DocumentProcessor')
     @patch('rag_system.SessionManager')
     def test_query_with_broken_config(self, mock_session_mgr, mock_doc_processor, mock_ai_gen, mock_vector_store):
-        """Test query behavior with the broken MAX_RESULTS=0 config"""
+        """Test that RAGSystem properly rejects invalid MAX_RESULTS=0 config"""
         # Arrange
         config = Config()
-        config.MAX_RESULTS = 0  # THE BUG!
-        rag_system = RAGSystem(config)
+        config.MAX_RESULTS = 0  # Invalid configuration
 
-        # Mock tool manager to return empty sources (simulating the bug effect)
-        rag_system.tool_manager.get_last_sources = Mock(return_value=[])
+        # Act & Assert - Should raise ValueError for invalid config
+        with pytest.raises(ValueError, match="Configuration validation failed. Cannot initialize RAG system."):
+            RAGSystem(config)
 
-        # Mock AI generator to return generic response (no tool results)
-        mock_ai_gen.return_value.generate_response.return_value = "I don't have specific information about that topic."
-
-        # Act
-        response, sources = rag_system.query("What is machine learning?")
-
-        # Assert - this demonstrates the bug behavior
-        assert response == "I don't have specific information about that topic."
-        assert sources == []  # No sources due to MAX_RESULTS=0
-
-        # The vector store would have been initialized with max_results=0
-        mock_vector_store.assert_called_once_with(config.CHROMA_PATH, config.EMBEDDING_MODEL, 0)
-
+    @patch('rag_system.os.path.isfile')
     @patch('rag_system.os.path.exists')
     @patch('rag_system.os.listdir')
-    def test_add_course_folder_success(self, mock_listdir, mock_exists, temp_course_document):
+    def test_add_course_folder_success(self, mock_listdir, mock_exists, mock_isfile, temp_course_document):
         """Test adding course folder successfully"""
         # Arrange
         config = Config()
@@ -157,6 +145,7 @@ class TestRAGSystemIntegration:
             # Mock file system
             mock_exists.return_value = True
             mock_listdir.return_value = ['course1.txt']
+            mock_isfile.return_value = True
 
             # Mock document processor
             from models import Course, Lesson, CourseChunk
