@@ -165,10 +165,21 @@ Provide only the direct answer to what was asked.
             if conversation_history
             else self.SYSTEM_PROMPT
         )
+        
+        print("System content:", system_content)
 
         # Multi-round loop
         while state.current_round < state.max_rounds:
             response = self._execute_round(state, system_content, tools, tool_manager)
+            
+            print("-" * 80)
+            print("Round:", state.current_round)
+            print("Response type:", response.content[0].type)
+            if response.content[0].type == "tool_use":
+                print("Tool use detected:", response.content[0].name, response.content[0].input)
+            elif response.content[0].type == "text":
+                print("Text response:", response.content[0].text)
+            print("-" * 80)
 
             # Check termination conditions
             if self._should_terminate(response, state):
