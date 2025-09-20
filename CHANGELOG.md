@@ -15,12 +15,20 @@ All notable changes to this project will be documented in this file.
   - Backward compatibility verification
 - Smart termination logic based on Claude's response patterns
 - Graceful error handling for tool execution failures during sequential rounds
+- Dark/light theme toggle with sticky bottom positioning in sidebar
+- Professional light theme with WCAG-compliant color palette
+- Theme persistence using localStorage with system preference detection
+- Smooth CSS transitions for seamless theme switching
+- Accessibility features including dynamic ARIA labels and keyboard navigation
+- Icon-based theme toggle button following existing design patterns
 
 ### Changed
 - Refactored `generate_response` method in AIGenerator to support sequential tool calling while maintaining backward compatibility
 - Updated system prompt to include examples and guidance for multi-step reasoning patterns
 - Enhanced conversation context preservation between tool calling rounds
 - Refactored entire test suite to use pytest-mock and SimpleNamespace for improved readability and maintainability
+- Frontend sidebar layout to use flexbox for better content organization and sticky positioning
+- CSS architecture to support theme switching with custom properties and smooth transitions
 
 ### Fixed
 - Issue where Claude couldn't make additional tool calls after seeing results from previous tools
