@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Added
+- GitHub Actions workflow for Claude Code integration to respond to @claude mentions in issues and PR comments
+- GitHub Actions workflow for automated PR reviews with Claude Code including tracking comments
 - Sequential tool calling support for AI generator allowing Claude to make up to 2 tool calls in separate API rounds
 - ToolCallState class for tracking state during multi-round tool calling sessions
 - Enhanced system prompt with guidance for sequential tool usage patterns
@@ -23,6 +25,7 @@ All notable changes to this project will be documented in this file.
 - Icon-based theme toggle button following existing design patterns
 
 ### Changed
+- Updated commit-all command to clarify using Claude Code command syntax (/log-changes)
 - Refactored `generate_response` method in AIGenerator to support sequential tool calling while maintaining backward compatibility
 - Updated system prompt to include examples and guidance for multi-step reasoning patterns
 - Enhanced conversation context preservation between tool calling rounds
