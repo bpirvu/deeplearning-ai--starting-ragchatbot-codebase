@@ -5,7 +5,7 @@
     padding: 0;
 }
 
-/* CSS Variables */
+/* CSS Variables - Dark Theme (Default) */
 :root {
     --primary-color: #2563eb;
     --primary-hover: #1d4ed8;
@@ -22,6 +22,30 @@
     --focus-ring: rgba(37, 99, 235, 0.2);
     --welcome-bg: #1e3a5f;
     --welcome-border: #2563eb;
+}
+
+/* CSS Variables - Light Theme */
+[data-theme="light"] {
+    --primary-color: #2563eb;
+    --primary-hover: #1d4ed8;
+    --background: #ffffff;
+    --surface: #f8fafc;
+    --surface-hover: #e2e8f0;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+    --user-message: #2563eb;
+    --assistant-message: #f1f5f9;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    --radius: 12px;
+    --focus-ring: rgba(37, 99, 235, 0.2);
+    --welcome-bg: #f0f9ff;
+    --welcome-border: #2563eb;
+}
+
+/* Smooth Transitions for Theme Switching */
+* {
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 /* Base Styles */
@@ -83,6 +107,8 @@ header h1 {
     padding: 1.5rem;
     overflow-y: auto;
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Custom Scrollbar for Sidebar */
@@ -109,6 +135,13 @@ header h1 {
 
 .sidebar-section:last-child {
     margin-bottom: 0;
+}
+
+/* Sidebar Content Wrapper */
+.sidebar-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Main Chat Area */
@@ -242,6 +275,22 @@ header h1 {
 
 .sources-content {
     padding: 0 0.5rem 0.25rem 1.5rem;
+    color: var(--text-secondary);
+}
+
+/* Source links styling */
+.source-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.source-link:hover {
+    color: var(--primary-hover);
+    text-decoration: underline;
+}
+
+.source-text {
     color: var(--text-secondary);
 }
 
@@ -601,6 +650,104 @@ details[open] .suggested-header::before {
     text-transform: none;
 }
 
+/* New Chat Button */
+.new-chat-button {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.5rem 0;
+    border: none;
+    background: none;
+    list-style: none;
+    outline: none;
+    transition: color 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    text-align: left;
+}
+
+.new-chat-button:focus {
+    color: var(--primary-color);
+}
+
+.new-chat-button:hover {
+    color: var(--primary-color);
+}
+
+.new-chat-button svg {
+    margin-right: 0.5rem;
+    transition: transform 0.2s ease;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+/* Theme Toggle Button - Following NEW CHAT Pattern */
+.theme-toggle-button {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.5rem 0;
+    border: none;
+    background: none;
+    list-style: none;
+    outline: none;
+    transition: color 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    text-align: left;
+}
+
+.theme-toggle-button:focus {
+    color: var(--primary-color);
+}
+
+.theme-toggle-button:hover {
+    color: var(--primary-color);
+}
+
+.theme-toggle-button .theme-icon {
+    margin-right: 0.5rem;
+    transition: transform 0.2s ease;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+/* Icon Visibility Control */
+.theme-icon.sun-icon {
+    display: none;
+}
+
+.theme-icon.moon-icon {
+    display: block;
+}
+
+[data-theme="light"] .theme-icon.sun-icon {
+    display: block;
+}
+
+[data-theme="light"] .theme-icon.moon-icon {
+    display: none;
+}
+
+/* Theme Label Text */
+.theme-label {
+    transition: opacity 0.2s ease;
+}
+
+/* Theme Settings Section - Sticky Bottom */
+.theme-settings {
+    margin-top: auto;
+    padding-top: 1.5rem;
+}
+
 /* Suggested Questions in Sidebar */
 .suggested-items {
     display: flex;
@@ -647,6 +794,8 @@ details[open] .suggested-header::before {
         padding: 1rem;
         order: 2;
         max-height: 40vh;
+        display: flex;
+        flex-direction: column;
     }
     
     .sidebar::-webkit-scrollbar {

@@ -4,6 +4,11 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from models import Course, CourseChunk
 from sentence_transformers import SentenceTransformer
+import logging
+import os
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 @dataclass
 class SearchResults:
@@ -32,24 +37,52 @@ class SearchResults:
         return len(self.documents) == 0
 
 class VectorStore:
-    """Vector storage using ChromaDB for course content and metadata"""
-    
+    """Vector storage using ChromaDB for course content and metadata with enhanced error handling"""
+
     def __init__(self, chroma_path: str, embedding_model: str, max_results: int = 5):
+        logger.info(f"🔧 Initializing VectorStore with max_results={max_results}, path={chroma_path}")
+
+        # Validate parameters
+        if max_results <= 0:
+            raise ValueError(f"max_results must be > 0, got {max_results}. This would cause search failures!")
+
+        if not chroma_path:
+            raise ValueError("chroma_path cannot be empty")
+
+        if not embedding_model:
+            raise ValueError("embedding_model cannot be empty")
+
         self.max_results = max_results
-        # Initialize ChromaDB client
-        self.client = chromadb.PersistentClient(
-            path=chroma_path,
-            settings=Settings(anonymized_telemetry=False)
-        )
-        
-        # Set up sentence transformer embedding function
-        self.embedding_function = chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name=embedding_model
-        )
-        
-        # Create collections for different types of data
-        self.course_catalog = self._create_collection("course_catalog")  # Course titles/instructors
-        self.course_content = self._create_collection("course_content")  # Actual course material
+        self.chroma_path = chroma_path
+        self.embedding_model = embedding_model
+
+        try:
+            # Initialize ChromaDB client
+            logger.info(f"📁 Setting up ChromaDB at: {chroma_path}")
+            self.client = chromadb.PersistentClient(
+                path=chroma_path,
+                settings=Settings(anonymized_telemetry=False)
+            )
+
+            # Set up sentence transformer embedding function
+            logger.info(f"🧠 Loading embedding model: {embedding_model}")
+            self.embedding_function = chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction(
+                model_name=embedding_model
+            )
+
+            # Create collections for different types of data
+            logger.info("📚 Creating/loading collections...")
+            self.course_catalog = self._create_collection("course_catalog")  # Course titles/instructors
+            self.course_content = self._create_collection("course_content")  # Actual course material
+
+            logger.info("✅ VectorStore initialized successfully")
+
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize VectorStore: {e}")
+            logger.error(f"   - chroma_path: {chroma_path}")
+            logger.error(f"   - embedding_model: {embedding_model}")
+            logger.error(f"   - max_results: {max_results}")
+            raise RuntimeError(f"VectorStore initialization failed: {e}") from e
     
     def _create_collection(self, name: str):
         """Create or get a ChromaDB collection"""
@@ -58,45 +91,80 @@ class VectorStore:
             embedding_function=self.embedding_function
         )
     
-    def search(self, 
+    def search(self,
                query: str,
                course_name: Optional[str] = None,
                lesson_number: Optional[int] = None,
                limit: Optional[int] = None) -> SearchResults:
         """
         Main search interface that handles course resolution and content search.
-        
+
         Args:
             query: What to search for in course content
             course_name: Optional course name/title to filter by
             lesson_number: Optional lesson number to filter by
             limit: Maximum results to return
-            
+
         Returns:
             SearchResults object with documents and metadata
         """
+        # Validate input
+        if not query or not query.strip():
+            logger.warning("⚠️  Empty query provided to search")
+            return SearchResults.empty("Query cannot be empty")
+
+        search_limit = limit if limit is not None else self.max_results
+
+        if search_limit <= 0:
+            logger.error(f"❌ Invalid search limit: {search_limit}. Must be > 0")
+            return SearchResults.empty(f"Invalid search limit: {search_limit}")
+
+        logger.info(f"🔍 Searching: '{query[:50]}{'...' if len(query) > 50 else ''}' (limit={search_limit})")
+        if course_name:
+            logger.info(f"   📚 Course filter: '{course_name}'")
+        if lesson_number:
+            logger.info(f"   📖 Lesson filter: {lesson_number}")
+
         # Step 1: Resolve course name if provided
         course_title = None
         if course_name:
+            logger.info(f"🔎 Resolving course name: '{course_name}'")
             course_title = self._resolve_course_name(course_name)
             if not course_title:
+                logger.warning(f"⚠️  No course found matching '{course_name}'")
                 return SearchResults.empty(f"No course found matching '{course_name}'")
-        
+            logger.info(f"✅ Resolved to: '{course_title}'")
+
         # Step 2: Build filter for content search
         filter_dict = self._build_filter(course_title, lesson_number)
-        
+        if filter_dict:
+            logger.info(f"🔧 Using filter: {filter_dict}")
+
         # Step 3: Search course content
-        # Use provided limit or fall back to configured max_results
-        search_limit = limit if limit is not None else self.max_results
-        
         try:
+            logger.debug(f"🔍 Executing vector search with n_results={search_limit}")
             results = self.course_content.query(
                 query_texts=[query],
                 n_results=search_limit,
                 where=filter_dict
             )
-            return SearchResults.from_chroma(results)
+
+            search_results = SearchResults.from_chroma(results)
+
+            if search_results.is_empty():
+                logger.info("📭 No results found for query")
+            else:
+                logger.info(f"✅ Found {len(search_results.documents)} results")
+                logger.debug(f"   📄 Result summary: {[doc[:100] + '...' if len(doc) > 100 else doc for doc in search_results.documents[:2]]}")
+
+            return search_results
+
         except Exception as e:
+            logger.error(f"❌ Search failed: {e}")
+            logger.error(f"   Query: '{query}'")
+            logger.error(f"   Course: {course_name}")
+            logger.error(f"   Lesson: {lesson_number}")
+            logger.error(f"   Limit: {search_limit}")
             return SearchResults.empty(f"Search error: {str(e)}")
     
     def _resolve_course_name(self, course_name: str) -> Optional[str]:
@@ -213,6 +281,37 @@ class VectorStore:
             print(f"Error getting course count: {e}")
             return 0
     
+    def get_lesson_link(self, course_title: str, lesson_number: int) -> Optional[str]:
+        """Get the lesson link for a specific course and lesson number"""
+        import json
+        try:
+            # Query the course catalog for the specific course
+            results = self.course_catalog.get(
+                ids=[course_title]
+            )
+
+            if not results or not results.get('metadatas'):
+                return None
+
+            metadata = results['metadatas'][0]
+            lessons_json = metadata.get('lessons_json')
+
+            if not lessons_json:
+                return None
+
+            # Parse the lessons metadata
+            lessons = json.loads(lessons_json)
+
+            # Find the lesson with matching number
+            for lesson in lessons:
+                if lesson.get('lesson_number') == lesson_number:
+                    return lesson.get('lesson_link')
+
+            return None
+        except Exception as e:
+            print(f"Error getting lesson link for {course_title} lesson {lesson_number}: {e}")
+            return None
+
     def get_all_courses_metadata(self) -> List[Dict[str, Any]]:
         """Get metadata for all courses in the vector store"""
         import json

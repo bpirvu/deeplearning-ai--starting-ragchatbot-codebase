@@ -44,12 +44,17 @@ class QueryResponse(BaseModel):
     """Response model for course queries"""
     answer: str
     sources: List[str]
+    source_links: List[Optional[str]]
     session_id: str
 
 class CourseStats(BaseModel):
     """Response model for course statistics"""
     total_courses: int
     course_titles: List[str]
+
+class NewSessionResponse(BaseModel):
+    """Response model for new session creation"""
+    session_id: str
 
 # API Endpoints
 
@@ -64,10 +69,17 @@ async def query_documents(request: QueryRequest):
         
         # Process query using RAG system
         answer, sources = rag_system.query(request.query, session_id)
-        
+
+        # Get source links from the search tool
+        source_links = rag_system.tool_manager.get_last_source_links()
+
+        # Reset sources after retrieving them for next request
+        rag_system.tool_manager.reset_sources()
+
         return QueryResponse(
             answer=answer,
             sources=sources,
+            source_links=source_links,
             session_id=session_id
         )
     except Exception as e:
@@ -82,6 +94,15 @@ async def get_course_stats():
             total_courses=analytics["total_courses"],
             course_titles=analytics["course_titles"]
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/new-session", response_model=NewSessionResponse)
+async def create_new_session():
+    """Create a new conversation session"""
+    try:
+        session_id = rag_system.session_manager.create_session()
+        return NewSessionResponse(session_id=session_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -5,7 +5,7 @@ const API_URL = '/api';
 let currentSessionId = null;
 
 // DOM elements
-let chatMessages, chatInput, sendButton, totalCourses, courseTitles;
+let chatMessages, chatInput, sendButton, totalCourses, courseTitles, newChatButton, themeToggle;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,8 +15,11 @@ document.addEventListener('DOMContentLoaded', () => {
     sendButton = document.getElementById('sendButton');
     totalCourses = document.getElementById('totalCourses');
     courseTitles = document.getElementById('courseTitles');
-    
+    newChatButton = document.getElementById('newChatButton');
+    themeToggle = document.getElementById('themeToggle');
+
     setupEventListeners();
+    initializeTheme();
     createNewSession();
     loadCourseStats();
 });
@@ -28,8 +31,15 @@ function setupEventListeners() {
     chatInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
     });
-    
-    
+
+    // New chat functionality
+    newChatButton.addEventListener('click', startNewChat);
+
+    // Theme toggle functionality
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleTheme);
+    }
+
     // Suggested questions
     document.querySelectorAll('.suggested-item').forEach(button => {
         button.addEventListener('click', (e) => {
@@ -82,7 +92,7 @@ async function sendMessage() {
 
         // Replace loading message with response
         loadingMessage.remove();
-        addMessage(data.answer, 'assistant', data.sources);
+        addMessage(data.answer, 'assistant', data.sources, data.source_links);
 
     } catch (error) {
         // Replace loading message with error
@@ -110,7 +120,7 @@ function createLoadingMessage() {
     return messageDiv;
 }
 
-function addMessage(content, type, sources = null, isWelcome = false) {
+function addMessage(content, type, sources = null, sourceLinks = null, isWelcome = false) {
     const messageId = Date.now();
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${type}${isWelcome ? ' welcome-message' : ''}`;
@@ -122,10 +132,20 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     let html = `<div class="message-content">${displayContent}</div>`;
     
     if (sources && sources.length > 0) {
+        // Create sources content with clickable links where available
+        const sourcesContent = sources.map((source, index) => {
+            const link = sourceLinks && sourceLinks[index];
+            if (link) {
+                return `<a href="${link}" target="_blank" rel="noopener noreferrer" class="source-link">${source}</a>`;
+            } else {
+                return `<span class="source-text">${source}</span>`;
+            }
+        }).join(', ');
+
         html += `
             <details class="sources-collapsible">
                 <summary class="sources-header">Sources</summary>
-                <div class="sources-content">${sources.join(', ')}</div>
+                <div class="sources-content">${sourcesContent}</div>
             </details>
         `;
     }
@@ -149,7 +169,40 @@ function escapeHtml(text) {
 async function createNewSession() {
     currentSessionId = null;
     chatMessages.innerHTML = '';
-    addMessage('Welcome to the Course Materials Assistant! I can help you with questions about courses, lessons and specific content. What would you like to know?', 'assistant', null, true);
+    addMessage('Welcome to the Course Materials Assistant! I can help you with questions about courses, lessons and specific content. What would you like to know?', 'assistant', null, null, true);
+}
+
+async function startNewChat() {
+    try {
+        // Clear the current chat UI
+        chatMessages.innerHTML = '';
+        currentSessionId = null;
+
+        // Call backend to create a new session
+        const response = await fetch(`${API_URL}/new-session`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            currentSessionId = data.session_id;
+        }
+
+        // Add welcome message
+        addMessage('Welcome to the Course Materials Assistant! I can help you with questions about courses, lessons and specific content. What would you like to know?', 'assistant', null, null, true);
+
+        // Focus on the input field
+        if (chatInput) {
+            chatInput.focus();
+        }
+    } catch (error) {
+        console.error('Error starting new chat:', error);
+        // Fall back to local session reset
+        createNewSession();
+    }
 }
 
 // Load course statistics
@@ -187,5 +240,73 @@ async function loadCourseStats() {
         if (courseTitles) {
             courseTitles.innerHTML = '<span class="error">Failed to load courses</span>';
         }
+    }
+}
+
+// Theme Management Functions
+function initializeTheme() {
+    try {
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('theme');
+
+        // Check system preference
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        // Use saved theme, or fall back to system preference (defaulting to dark)
+        const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+
+        setTheme(theme);
+    } catch (error) {
+        console.warn('Error initializing theme:', error);
+        // Fall back to dark theme
+        setTheme('dark');
+    }
+}
+
+function toggleTheme() {
+    try {
+        const currentTheme = document.body.getAttribute('data-theme') || 'dark';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        setTheme(newTheme);
+    } catch (error) {
+        console.error('Error toggling theme:', error);
+    }
+}
+
+function setTheme(theme) {
+    try {
+        // Apply theme to body
+        if (theme === 'light') {
+            document.body.setAttribute('data-theme', 'light');
+        } else {
+            document.body.removeAttribute('data-theme');
+        }
+
+        // Save theme preference
+        localStorage.setItem('theme', theme);
+
+        // Update button text and accessibility
+        updateThemeButton(theme);
+
+    } catch (error) {
+        console.error('Error setting theme:', error);
+    }
+}
+
+function updateThemeButton(theme) {
+    if (!themeToggle) return;
+
+    try {
+        const themeLabel = themeToggle.querySelector('.theme-label');
+
+        if (theme === 'light') {
+            themeLabel.textContent = 'DARK MODE';
+            themeToggle.setAttribute('aria-label', 'Switch to dark theme');
+        } else {
+            themeLabel.textContent = 'LIGHT MODE';
+            themeToggle.setAttribute('aria-label', 'Switch to light theme');
+        }
+    } catch (error) {
+        console.error('Error updating theme button:', error);
     }
 }
