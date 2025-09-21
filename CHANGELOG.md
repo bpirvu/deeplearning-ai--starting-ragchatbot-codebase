@@ -25,6 +25,7 @@ All notable changes to this project will be documented in this file.
 - Icon-based theme toggle button following existing design patterns
 
 ### Changed
+- Renamed Claude Code command from `implement-feature.md` to `implement-frontend-feature.md` for clarity
 - Updated commit-all command to clarify using Claude Code command syntax (/log-changes)
 - Refactored `generate_response` method in AIGenerator to support sequential tool calling while maintaining backward compatibility
 - Updated system prompt to include examples and guidance for multi-step reasoning patterns
